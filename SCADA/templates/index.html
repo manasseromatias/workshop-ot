@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCADA Dashboard</title>
+
+    <!-- Link to Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Estilos básicos mejorados para proyectores -->
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+
+        .container {
+            max-width: 100vw; /* Ancho completo */
+            padding: 20px;
+            margin: 0 auto;
+            background-color: #fff;
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            font-size: 3rem; /* Tamaño más grande para proyectores */
+            margin-bottom: 40px;
+        }
+
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr); /* Dos gráficos en la fila superior */
+            grid-gap: 30px; /* Mayor separación entre gráficos */
+            justify-items: center;
+        }
+
+        .chart-row-bottom {
+            display: flex;
+            justify-content: center; /* Centrar el gráfico inferior */
+            margin-top: 30px;
+        }
+
+        .chart-container {
+            width: 100%;
+            padding: 20px;
+            background-color: #ffffff;
+            border-radius: 15px;
+            box-shadow: 0px 8px 12px rgba(0, 0, 0, 0.2); /* Sombra más evidente para proyectores */
+            border: 2px solid #e0e0e0; /* Borde claro para una mejor visualización */
+        }
+
+        canvas {
+            width: 100% !important; /* Ocupar todo el ancho del contenedor */
+            height: auto !important;
+        }
+        
+        /* Aumentar el tamaño de la tipografía para mejor visibilidad */
+        .chartjs-size-monitor {
+            font-size: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SCADA Dashboard</h1>
+        
+        <div class="chart-grid">
+            <div class="chart-container">
+                <canvas id="temperatureChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="pressureChart"></canvas>
+            </div>
+        </div>
+        
+        <div class="chart-row-bottom">
+            <div class="chart-container" style="width: 50%;"> <!-- Gráfico inferior centrado -->
+                <canvas id="humidityChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Crear gráficos con Chart.js
+        const ctxTemp = document.getElementById('temperatureChart').getContext('2d');
+        const ctxPressure = document.getElementById('pressureChart').getContext('2d');
+        const ctxHumidity = document.getElementById('humidityChart').getContext('2d');
+
+        // Gráfico de Temperatura
+        const temperatureChart = new Chart(ctxTemp, {
+            type: 'line',
+            data: {
+                labels: [], // Los valores de tiempo van aquí
+                datasets: [{
+                    label: 'Temperatura (°C)',
+                    data: [],
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.3)',
+                    fill: true,
+                    borderWidth: 3 // Líneas más gruesas
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 18 // Tamaño de texto mayor
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { 
+                        title: { display: true, text: 'Tiempo', font: { size: 20 } } 
+                    },
+                    y: { 
+                        title: { display: true, text: '°C', font: { size: 20 } } 
+                    }
+                }
+            }
+        });
+
+        // Gráfico de Presión
+        const pressureChart = new Chart(ctxPressure, {
+            type: 'line',
+            data: {
+                labels: [], // Los valores de tiempo van aquí
+                datasets: [{
+                    label: 'Presión (Bar)',
+                    data: [],
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    backgroundColor: 'rgba(54, 162, 235, 0.3)',
+                    fill: true,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 18
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Tiempo', font: { size: 20 } } },
+                    y: { title: { display: true, text: 'Bar', font: { size: 20 } } }
+                }
+            }
+        });
+
+        // Gráfico de Humedad
+        const humidityChart = new Chart(ctxHumidity, {
+            type: 'line',
+            data: {
+                labels: [], // Los valores de tiempo van aquí
+                datasets: [{
+                    label: 'Humedad (%)',
+                    data: [],
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    backgroundColor: 'rgba(75, 192, 192, 0.3)',
+                    fill: true,
+                    borderWidth: 3
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                responsive: true,
+                plugins: {
+                    legend: {
+                        labels: {
+                            font: {
+                                size: 18
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: 'Tiempo', font: { size: 20 } } },
+                    y: { title: { display: true, text: '%', font: { size: 20 } } }
+                }
+            }
+        });
+
+        // Función para actualizar los gráficos
+        function updateCharts(data) {
+            const currentTime = new Date().toLocaleTimeString();
+
+            // Actualizar gráfico de temperatura
+            temperatureChart.data.labels.push(currentTime);
+            temperatureChart.data.datasets[0].data.push(data.temperature);
+            temperatureChart.update();
+
+            // Actualizar gráfico de presión
+            pressureChart.data.labels.push(currentTime);
+            pressureChart.data.datasets[0].data.push(data.pressure);
+            pressureChart.update();
+
+            // Actualizar gráfico de humedad
+            humidityChart.data.labels.push(currentTime);
+            humidityChart.data.datasets[0].data.push(data.humidity);
+            humidityChart.update();
+        }
+
+        // Simulación de datos desde el backend (usamos un temporizador como ejemplo)
+        setInterval(() => {
+            fetch('/scada-data') // Llamada AJAX a tu servidor Flask para obtener los datos
+                .then(response => response.json())
+                .then(data => {
+                    updateCharts(data);
+                });
+        }, 1000); // Actualizar cada segundo
+    </script>
+</body>
+</html>
