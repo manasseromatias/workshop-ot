@@ -8,23 +8,24 @@ import time
 
 def update_modbus_data(context):
     while True:
-        # Simulando datos de sensores
-        temperature = int(random.uniform(200, 300))  # Temperatura en décimas de grado
-        pressure = int(random.uniform(0, 100))       # Presión en décimas de bar
-        humidity = int(random.uniform(0, 1000))      # Humedad en décimas de %
+        # Simulate sensor data
+        temperature = int(random.uniform(200, 300))  # Temperature in tenths of degrees
+        pressure = int(random.uniform(0, 100))       # Pressure in tenths of bar
+        humidity = int(random.uniform(0, 1000))      # Humidity in tenths of %
 
-        # Obtener el contexto esclavo (slave) y actualizar los registros de retención
-        slave_id = 0x00  # Identificador del esclavo, 0x00 es el esclavo único en este caso
+        # Update holding registers with sensor data
+        slave_id = 0x00  # Slave ID, 0x00 is the single slave in this case
         context[slave_id].setValues(3, 0, [temperature])
         context[slave_id].setValues(3, 1, [pressure])
         context[slave_id].setValues(3, 2, [humidity])
 
-        # Imprimir los valores para verificar que se están actualizando
-        print(f"Actualizando valores: Temperatura={temperature}, Presión={pressure}, Humedad={humidity}")
+        # Print values to verify they are updating
+        print(f"Updating values: Temperature={temperature}, Pressure={pressure}, Humidity={humidity}")
 
-        time.sleep(1)  # Actualizar cada segundo
+        time.sleep(1)  # Update every second
 
 def run_plc_server():
+    # Create Modbus datastore with initial values
     store = ModbusSlaveContext(
         di=ModbusSequentialDataBlock(0, [0]*100),
         co=ModbusSequentialDataBlock(0, [0]*100),
@@ -33,6 +34,7 @@ def run_plc_server():
     )
     context = ModbusServerContext(slaves=store, single=True)
 
+    # Define server identity
     identity = ModbusDeviceIdentification()
     identity.VendorName = 'pymodbus'
     identity.ProductCode = 'PM'
@@ -41,12 +43,13 @@ def run_plc_server():
     identity.ModelName = 'pymodbus Server'
     identity.MajorMinorRevision = '1.0'
 
-    # Iniciar el servidor Modbus en la IP 192.168.1.35 y puerto 502
-    server = threading.Thread(target=StartTcpServer, args=(context, identity, ("192.168.1.35", 502)))
+    # Start the Modbus server on all network interfaces (0.0.0.0) and port 502
+    server = threading.Thread(target=StartTcpServer, args=(context, identity, ("0.0.0.0", 502)))
     server.start()
     return context
 
 if __name__ == "__main__":
+    # Run the Modbus server and start updating data
     context = run_plc_server()
     update_thread = threading.Thread(target=update_modbus_data, args=(context,))
     update_thread.start()

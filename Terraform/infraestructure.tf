@@ -67,16 +67,6 @@ yum install -y python3 git python3-pip
 EOF
 }
 
-# EOF ----
-# yum install -y python3 git python3-pip
-# git clone https://github.com/manasseromatias/workshop-ot.git
-# pip install Flask
-# pip install pymodbus==2.5.3
-# cd /home/ec2-user/workshop-ot/SCADA
-# python3 -m venv venv
-# source venv/bin/activate
-# EOF ----
-
 
 # IAM Role (optional for additional permissions)
 resource "aws_iam_role" "ec2_role" {
