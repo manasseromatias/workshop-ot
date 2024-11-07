@@ -1,34 +1,34 @@
 # main.tf
 
 provider "aws" {
-  region = "us-east-1"  # Cambia esto según la región que prefieras
+  region = "us-east-1"  # Change this to your preferred region
 }
 
-# Crear el par de claves SSH a partir de la clave pública local
+# Create SSH key pair from local public key
 resource "aws_key_pair" "workshop_key" {
   key_name   = "workshop_ot_key"
-  public_key = file("~/.ssh/id_rsa.pub")  # Asegúrate de tener esta clave pública generada
+  public_key = file("~/.ssh/id_rsa.pub")  # Ensure this public key exists
 }
 
-# Security Group para la instancia EC2
+# Security Group for EC2 instance
 resource "aws_security_group" "workshop_sg" {
   name        = "workshop_ot_sg"
   description = "Security Group for OT Workshop EC2 instance"
 
-  # Permitir SSH solo desde la IP específica
+  # Allow SSH only from specific IPs
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["98.97.134.240/32"]
+    cidr_blocks = ["98.97.134.240/32", "98.97.134.148/32"]
   }
 
-  # Permitir tráfico en el puerto 502 para simulación de PLC (Modbus)
+  # Allow traffic on port 502 for PLC (Modbus) simulation
   ingress {
     from_port   = 502
     to_port     = 502
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Cambia a un rango específico si es posible
+    cidr_blocks = ["0.0.0.0/0"]  # Change to a specific range if possible
   }
 
   egress {
@@ -39,34 +39,46 @@ resource "aws_security_group" "workshop_sg" {
   }
 }
 
-# Creación de la instancia EC2
+# Creation of EC2 instance for SCADA
 resource "aws_instance" "workshop_ec2_scada" {
-  ami           = "ami-06b21ccaeff8cd686"  # AMI especificada
-  instance_type = "t2.micro"               # Tipo de instancia especificado
+  ami           = "ami-06b21ccaeff8cd686"  # Specified AMI
+  instance_type = "t2.micro"               # Specified instance type
 
-  # Asignar Security Group
+  # Assign Security Group
   vpc_security_group_ids = [aws_security_group.workshop_sg.id]
 
-  # Habilitar IP pública para acceso
+  # Enable public IP for access
   associate_public_ip_address = true
 
-  # Usar el par de claves creado por Terraform
+  # Use the SSH key pair created by Terraform
   key_name = aws_key_pair.workshop_key.key_name
 
-  # Etiquetas para identificar recursos
+  # Tags for resource identification
   tags = {
-    Name = "workshop-ot-ec2-instance"
+    Name = "workshop-ot-scada-instance"
   }
 
-  # User Data para instalación automática de dependencias (ejemplo con Python y Git)
+  # User Data for automatic installation of dependencies
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y python3 git
-              EOF
+#!/bin/bash
+yum update -y
+yum install git
+yum install -y python3 git python3-pip
+EOF
 }
 
-# IAM Role (opcional si es necesario para permisos adicionales)
+# EOF ----
+# yum install -y python3 git python3-pip
+# git clone https://github.com/manasseromatias/workshop-ot.git
+# pip install Flask
+# pip install pymodbus==2.5.3
+# cd /home/ec2-user/workshop-ot/SCADA
+# python3 -m venv venv
+# source venv/bin/activate
+# EOF ----
+
+
+# IAM Role (optional for additional permissions)
 resource "aws_iam_role" "ec2_role" {
   name = "workshop_ec2_role"
 
@@ -84,12 +96,13 @@ resource "aws_iam_role" "ec2_role" {
   })
 }
 
-# Adjuntar el IAM Role a la instancia EC2 (opcional)
+# Attach the IAM Role to the EC2 instance (optional)
 resource "aws_iam_instance_profile" "workshop_instance_profile" {
   name = "workshop_instance_profile"
   role = aws_iam_role.ec2_role.name
 }
 
+# Creation of EC2 instance for PLC
 resource "aws_instance" "workshop_ec2_plc" {
   ami                         = "ami-06b21ccaeff8cd686"
   instance_type               = "t2.micro"
@@ -99,12 +112,26 @@ resource "aws_instance" "workshop_ec2_plc" {
   iam_instance_profile        = aws_iam_instance_profile.workshop_instance_profile.name
 
   tags = {
-    Name = "workshop-ot-instance"
+    Name = "workshop-ot-plc-instance"
   }
 
+  # User Data for automatic installation of dependencies
   user_data = <<-EOF
-              #!/bin/bash
-              yum update -y
-              yum install -y python3 git
-              EOF
+#!/bin/bash
+yum update -y
+yum install git
+yum install -y python3 git python3-pip
+pip install pymodbus==2.5.3
+EOF
+}
+
+# Outputs to show the IPs of the EC2 instances
+output "workshop_ec2_scada_public_ip" {
+  value       = aws_instance.workshop_ec2_scada.public_ip
+  description = "Public IP of the SCADA EC2 instance"
+}
+
+output "workshop_ec2_plc_public_ip" {
+  value       = aws_instance.workshop_ec2_plc.public_ip
+  description = "Public IP of the PLC EC2 instance"
 }

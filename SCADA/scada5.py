@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, render_template
-from pymodbus.client import ModbusTcpClient
+#from pymodbus.client import ModbusTcpClient
+from pymodbus.client.sync import ModbusTcpClient
 import threading
 import time
 
