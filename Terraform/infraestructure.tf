@@ -1,8 +1,11 @@
 # main.tf
 
+#------------------------------ REGION AWS ------------------------------#
 provider "aws" {
   region = "us-east-1"  # Change this to your preferred region
 }
+
+#------------------------------ SSH ------------------------------#
 
 # Create SSH key pair from local public key
 resource "aws_key_pair" "workshop_key" {
@@ -10,27 +13,45 @@ resource "aws_key_pair" "workshop_key" {
   public_key = file("~/.ssh/id_rsa.pub")  # Ensure this public key exists
 }
 
-# Security Group for EC2 instance
-resource "aws_security_group" "workshop_sg" {
-  name        = "workshop_ot_sg"
-  description = "Security Group for OT Workshop EC2 instance"
+#------------------------------ IPs ------------------------------#
 
-  # Allow SSH only from specific IPs
+#IPs from users
+variable "allowed_ips" {
+  description = "List of IPs allowed to access specific ports"
+  type        = list(string)
+  default     = ["98.97.134.240/32", "98.97.134.148/32", "98.97.134.234/32"]  
+}
+
+variable "allowed_all" {
+  description = "List of IPs allowed to access specific ports"
+  type        = list(string)
+  default     = ["0.0.0.0/0"]  
+}
+
+#------------------------------ SECURITY GROUPS ------------------------------#
+
+# Security Group for SCADA
+resource "aws_security_group" "scada_sg" {
+  name        = "workshop_ot_scada_sg"
+  description = "Security Group for SCADA instance"
+
+  # Allow SSH from specific IPs
   ingress {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["98.97.134.240/32", "98.97.134.148/32"]
+    cidr_blocks = var.allowed_ips
   }
 
-  # Allow traffic on port 502 for PLC (Modbus) simulation
+  # Allow HTTPS from specific IPs
   ingress {
-    from_port   = 502
-    to_port     = 502
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]  # Change to a specific range if possible
+    cidr_blocks = var.allowed_all
   }
 
+  # Outbound rules (optional, default allows all egress)
   egress {
     from_port   = 0
     to_port     = 0
@@ -39,13 +60,46 @@ resource "aws_security_group" "workshop_sg" {
   }
 }
 
+# Security Group for PLC
+resource "aws_security_group" "plc_sg" {
+  name        = "workshop_ot_plc_sg"
+  description = "Security Group for PLC instance"
+
+  # Allow SSH from specific IPs
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ips
+  }
+
+  # Allow Modbus connections on port 502 from SCADA instance's IP
+  ingress {
+    from_port   = 502
+    to_port     = 502
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ips
+  }
+
+  # Outbound rules (optional, default allows all egress)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+#------------------------------ EC2 ------------------------------#
+
+
 # Creation of EC2 instance for SCADA
 resource "aws_instance" "workshop_ec2_scada" {
   ami           = "ami-06b21ccaeff8cd686"  # Specified AMI
   instance_type = "t2.micro"               # Specified instance type
 
-  # Assign Security Group
-  vpc_security_group_ids = [aws_security_group.workshop_sg.id]
+  # Assign SCADA Security Group
+  vpc_security_group_ids = [aws_security_group.scada_sg.id]
 
   # Enable public IP for access
   associate_public_ip_address = true
@@ -62,11 +116,36 @@ resource "aws_instance" "workshop_ec2_scada" {
   user_data = <<-EOF
 #!/bin/bash
 yum update -y
-yum install git
-yum install -y python3 git python3-pip
+yum install -y git python3 python3-pip
+pip install flask
+yum install telnet
 EOF
 }
 
+# Creation of EC2 instance for PLC
+resource "aws_instance" "workshop_ec2_plc" {
+  ami                         = "ami-06b21ccaeff8cd686"
+  instance_type               = "t2.micro"
+  associate_public_ip_address = true
+  vpc_security_group_ids      = [aws_security_group.plc_sg.id]
+  key_name                    = aws_key_pair.workshop_key.key_name
+  iam_instance_profile        = aws_iam_instance_profile.workshop_instance_profile.name
+
+  tags = {
+    Name = "workshop-ot-plc-instance"
+  }
+
+  # User Data for automatic installation of dependencies
+  user_data = <<-EOF
+#!/bin/bash
+yum update -y
+yum install -y git python3 python3-pip
+pip install pymodbus==2.5.3
+yum install telnet
+EOF
+}
+
+#------------------------------ IAM ------------------------------#
 
 # IAM Role (optional for additional permissions)
 resource "aws_iam_role" "ec2_role" {
@@ -92,36 +171,26 @@ resource "aws_iam_instance_profile" "workshop_instance_profile" {
   role = aws_iam_role.ec2_role.name
 }
 
-# Creation of EC2 instance for PLC
-resource "aws_instance" "workshop_ec2_plc" {
-  ami                         = "ami-06b21ccaeff8cd686"
-  instance_type               = "t2.micro"
-  associate_public_ip_address = true
-  vpc_security_group_ids      = [aws_security_group.workshop_sg.id]
-  key_name                    = aws_key_pair.workshop_key.key_name
-  iam_instance_profile        = aws_iam_instance_profile.workshop_instance_profile.name
+#------------------------------ OUTPUTS VARIABLES ------------------------------#
 
-  tags = {
-    Name = "workshop-ot-plc-instance"
-  }
+# Outputs to show the Public IPs and Public DNS of the EC2 instances
 
-  # User Data for automatic installation of dependencies
-  user_data = <<-EOF
-#!/bin/bash
-yum update -y
-yum install git
-yum install -y python3 git python3-pip
-pip install pymodbus==2.5.3
-EOF
-}
-
-# Outputs to show the IPs of the EC2 instances
 output "workshop_ec2_scada_public_ip" {
   value       = aws_instance.workshop_ec2_scada.public_ip
   description = "Public IP of the SCADA EC2 instance"
 }
 
+output "workshop_ec2_scada_public_dns" {
+  value       = aws_instance.workshop_ec2_scada.public_dns
+  description = "Public DNS of the SCADA EC2 instance"
+}
+
 output "workshop_ec2_plc_public_ip" {
   value       = aws_instance.workshop_ec2_plc.public_ip
   description = "Public IP of the PLC EC2 instance"
+}
+
+output "workshop_ec2_plc_public_dns" {
+  value       = aws_instance.workshop_ec2_plc.public_dns
+  description = "Public DNS of the PLC EC2 instance"
 }
