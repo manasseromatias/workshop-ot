@@ -19,7 +19,7 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["98.97.134.240/32", "98.97.134.148/32", "98.97.134.234/32"]  
+  default     = ["98.97.134.101/32", "18.204.17.246/32"]  
 }
 
 variable "allowed_all" {
@@ -51,6 +51,13 @@ resource "aws_security_group" "scada_sg" {
     cidr_blocks = var.allowed_all
   }
 
+  # Allow 5000 from specific IPs
+  ingress {
+    from_port   = 5000
+    to_port     = 5000
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_all
+  }
   # Outbound rules (optional, default allows all egress)
   egress {
     from_port   = 0
