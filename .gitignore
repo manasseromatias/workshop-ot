@@ -1,15 +1,28 @@
-# Ignore Terraform lock file
-Terraform/.terraform.lock.hcl
-
-# Ignore Terraform provider directories
-Terraform/.terraform/
-
-# Ignore Terraform state files
-Terraform/terraform.tfstate
-Terraform/terraform.tfstate.backup
+# Terraform State files
 terraform.tfstate
 terraform.tfstate.backup
+*.tfstate
+*.tfstate.*
 
-# Ignore all .DS_Store files
-*.DS_Store
+# Terraform variables and secrets
+*.tfvars
+*.tfvars.json
 
+# Terraform configuration lock file
+.terraform.lock.hcl
+
+# Directory for Terraform providers and plugins
+.terraform/
+
+# Crash logs and override files
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Ignore plan output files
+*.tfplan
+
+# Ignore any .DS_Store files (for macOS)
+.DS_Store
