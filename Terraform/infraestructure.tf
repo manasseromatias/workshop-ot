@@ -19,7 +19,9 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["98.97.134.240/32", "98.97.134.148/32", "98.97.134.234/32"]  
+  default     = ["190.210.32.117/32","191.96.5.194/32","3.84.47.70/32"]  
+  #default     = ["0.0.0.0/0"]  
+
 }
 
 variable "allowed_all" {
@@ -45,13 +47,13 @@ resource "aws_security_group" "scada_sg" {
 
   # Allow HTTPS from specific IPs
   ingress {
-    from_port   = 443
-    to_port     = 443
+    from_port   = 80
+    to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = var.allowed_all
+    cidr_blocks = var.allowed_ips
   }
 
-  # Outbound rules (optional, default allows all egress)
+  # # Outbound rules (optional, default allows all egress)
   egress {
     from_port   = 0
     to_port     = 0
@@ -74,6 +76,14 @@ resource "aws_security_group" "plc_sg" {
   }
 
   # Allow Modbus connections on port 502 from SCADA instance's IP
+  ingress {
+    from_port   = 502
+    to_port     = 502
+    protocol    = "tcp"
+    cidr_blocks = var.allowed_ips
+  }
+
+#IP From SCADA
   ingress {
     from_port   = 502
     to_port     = 502
