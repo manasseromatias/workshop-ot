@@ -19,7 +19,7 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["190.210.32.117/32","191.96.5.194/32","3.84.47.70/32"]  
+  default     = ["190.210.32.117/32","54.89.15.84/32"]  
   #default     = ["0.0.0.0/0"]  
 
 }
@@ -83,14 +83,6 @@ resource "aws_security_group" "plc_sg" {
     cidr_blocks = var.allowed_ips
   }
 
-#IP From SCADA
-  ingress {
-    from_port   = 502
-    to_port     = 502
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ips
-  }
-
   # Outbound rules (optional, default allows all egress)
   egress {
     from_port   = 0
@@ -128,7 +120,7 @@ resource "aws_instance" "workshop_ec2_scada" {
 yum update -y
 yum install -y git python3 python3-pip
 pip install flask
-yum install telnet
+yum install -y telnet
 EOF
 }
 
@@ -151,7 +143,7 @@ resource "aws_instance" "workshop_ec2_plc" {
 yum update -y
 yum install -y git python3 python3-pip
 pip install pymodbus==2.5.3
-yum install telnet
+yum install -y telnet
 EOF
 }
 
