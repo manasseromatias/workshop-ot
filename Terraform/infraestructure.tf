@@ -11,6 +11,9 @@ provider "aws" {
 resource "aws_key_pair" "workshop_key" {
   key_name   = "workshop_ot_key"
   public_key = file("~/.ssh/id_rsa.pub")  # Ensure this public key exists
+  # Windows Users
+  #public_key = file("C:/Users/YourUsername/.ssh/id_rsa.pub")  # Replace 'YourUsername' with your actual username
+
 }
 
 #------------------------------ IPs ------------------------------#
@@ -19,9 +22,11 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["190.210.32.117/32","191.96.5.194/32","3.84.47.70/32"]  
-  #default     = ["0.0.0.0/0"]  
-
+  default     = ["0.0.0.0/0"]  
+  # Load the public IP address from which you will work before exposing it publicly.
+  # Example
+  # default = ["200.10.120.2/32","3.80.192.75/32"]  
+  
 }
 
 variable "allowed_all" {
@@ -83,15 +88,7 @@ resource "aws_security_group" "plc_sg" {
     cidr_blocks = var.allowed_ips
   }
 
-#IP From SCADA
-  ingress {
-    from_port   = 502
-    to_port     = 502
-    protocol    = "tcp"
-    cidr_blocks = var.allowed_ips
-  }
-
-  # Outbound rules (optional, default allows all egress)
+  # Outbound rules 
   egress {
     from_port   = 0
     to_port     = 0
@@ -128,7 +125,7 @@ resource "aws_instance" "workshop_ec2_scada" {
 yum update -y
 yum install -y git python3 python3-pip
 pip install flask
-yum install telnet
+yum install -y telnet
 EOF
 }
 
@@ -151,7 +148,7 @@ resource "aws_instance" "workshop_ec2_plc" {
 yum update -y
 yum install -y git python3 python3-pip
 pip install pymodbus==2.5.3
-yum install telnet
+yum install -y telnet
 EOF
 }
 
@@ -202,5 +199,5 @@ output "workshop_ec2_plc_public_ip" {
 
 output "workshop_ec2_plc_public_dns" {
   value       = aws_instance.workshop_ec2_plc.public_dns
-  description = "Public DNS of the PLC EC2 instance"
+    description = "Public DNS of the PLC EC2 instance"
 }
