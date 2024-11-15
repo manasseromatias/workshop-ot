@@ -22,8 +22,11 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["200.10.120.2/32","3.80.192.75/32"]  
-
+  default     = ["0.0.0.0/0"]  
+  # Load the public IP address from which you will work before exposing it publicly.
+  # Example
+  # default = ["200.10.120.2/32","3.80.192.75/32"]  
+  
 }
 
 variable "allowed_all" {
