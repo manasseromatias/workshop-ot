@@ -11,6 +11,9 @@ provider "aws" {
 resource "aws_key_pair" "workshop_key" {
   key_name   = "workshop_ot_key"
   public_key = file("~/.ssh/id_rsa.pub")  # Ensure this public key exists
+  # Windows Users
+  #public_key = file("C:/Users/YourUsername/.ssh/id_rsa.pub")  # Replace 'YourUsername' with your actual username
+
 }
 
 #------------------------------ IPs ------------------------------#
@@ -19,8 +22,7 @@ resource "aws_key_pair" "workshop_key" {
 variable "allowed_ips" {
   description = "List of IPs allowed to access specific ports"
   type        = list(string)
-  default     = ["190.210.32.117/32","54.89.15.84/32"]  
-  #default     = ["0.0.0.0/0"]  
+  default     = ["200.10.120.2/32","3.80.192.75/32"]  
 
 }
 
@@ -83,7 +85,7 @@ resource "aws_security_group" "plc_sg" {
     cidr_blocks = var.allowed_ips
   }
 
-  # Outbound rules (optional, default allows all egress)
+  # Outbound rules 
   egress {
     from_port   = 0
     to_port     = 0
@@ -194,5 +196,5 @@ output "workshop_ec2_plc_public_ip" {
 
 output "workshop_ec2_plc_public_dns" {
   value       = aws_instance.workshop_ec2_plc.public_dns
-  description = "Public DNS of the PLC EC2 instance"
+    description = "Public DNS of the PLC EC2 instance"
 }

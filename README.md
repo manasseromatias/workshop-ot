@@ -33,10 +33,6 @@
 7. **Conclusiones**
    - Resumen de los aprendizajes y Q&A final.
 
-### 🛠️ Requisitos Técnicos para el Workshop
-**Para Matias**:
-- Internet estable (🔑 para el éxito de la sesión).
-- Proyector y micrófono.
 
 ### 📸 Presentación del Instructor
 Ex Policía Federal especializado en **seguridad en entornos Cloud y OT** con más de 10 años de experiencia en tecnología. Cuenta con una Maestría en Ciberdefensa y una Licenciatura en Sistemas.
